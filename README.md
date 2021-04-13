@@ -23,10 +23,10 @@ Common scenarios encapsulated are:
         * utilize the Docker-compose.yml file included in this repo. 
         * Simply enter the command "docker-compose up -d" from the root of the project while Docker is running on your machine 
         * necessary images should download and start both a PG DB server and a GUI available at http://localhost:8080/
-        * You can find login credentials for the above in ./src/database/sequelizeConnection.ts
+        * You can find login credentials for the above in [sequelizeConnection.ts](https://github.com/JustinianH/nodePostGresDemo/blob/main/src/database/sequelizeConnection.ts)
     2. Download PG Admin
         * This will install a local PG DB with a GUI client on your machine. 
-        * You may have to reconfigure your connection files in ./src/database/connection.ts and ./src/database/sequelizeConnection.ts
+        * You may have to reconfigure your connection files in [connection.ts][sequelizeConnection.ts](https://github.com/JustinianH/nodePostGresDemo/blob/main/src/database/connection.ts) and [sequelizeConnection.ts](https://github.com/JustinianH/nodePostGresDemo/blob/main/src/database/sequelizeConnection.ts)
 4. There are several scripts available in package.json to get the project running ("npm run script_name"):
     1. build - compiles typescript into a dist directory
     2. start - compiles and runs project without watching
