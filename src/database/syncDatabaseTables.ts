@@ -1,4 +1,3 @@
-import { Movies } from "./movies.db-model";
 import { Conditions } from "./models/Conditions";
 import { Measurements } from "./models/Measurements";
 import { UserMeasurements } from "./models/UserMeasurements";
@@ -9,8 +8,7 @@ import { UserNotes } from "./models/UserNotes";
 
 // Sync tables to DB with Sequelize and Seed DB if needed
 const syncDbTables = async () => {
-  await Movies.sync();
-
+  
   await Conditions.sync().then(async function (response) {
     let conditionsSeeded = await Conditions.findAll({ raw: true });
 

@@ -1,6 +1,5 @@
 const axios = require('axios').default;
 import {nytApi, nytApiKey} from '../config/config';
-import CriticsAndPicksResponse from '../models/CriticAndPicksResponse';
 
 const NYT_URL = 'https://api.nytimes.com/svc/movies/v2/reviews/search.json?';
 
@@ -82,7 +81,7 @@ export const getCritic = async () => {
 }
 
 export const getPicksAndCritics = async () => {
-  let aggregateResponse: CriticsAndPicksResponse;
+  let aggregateResponse: any;
 
   await axios
     .all([getCriticsPicks(), getCritic()])

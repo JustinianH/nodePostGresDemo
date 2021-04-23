@@ -55,8 +55,8 @@ export const getMeasurementNamesToKeys = async () => {
 	return measurementNamesToKeys;
 };
 
-export const getMeasurmentKeyByName = (measurementName) => {
-
+export const createMeasurement = async (measurement, measurement_type) => {
+    return await (await Measurements.create({measurement, measurement_type})).get("id");
 }
 
 export const normalizeString = (inputString: string): string => {

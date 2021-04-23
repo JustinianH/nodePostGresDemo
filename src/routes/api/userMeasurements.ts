@@ -54,7 +54,7 @@ router.delete("/user-measurements", async (req, res, next) => {
 router.get("/user-measurements", async (req, res, next) => {
   let results = await getDailyAndWeeklyUserMeasurementsByCondition(
     req.query.userId,
-    req.query.conditionId
+    req.query.condition
   );
   return res.json(results);
 });

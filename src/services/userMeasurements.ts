@@ -11,9 +11,11 @@ import {
 	getNoteCategoriesToKeys,
 	getMeasurementNamesToKeys,
 	normalizeString,
+	createMeasurement,
 } from "../database/helpers/db-helpers";
 import { UserNote } from "../models/UserNote";
 import { UserNotes } from "../database/models/UserNotes";
+import { DailyAndWeeklyUserMeasurements } from "../models/DailyAndWeeklyUserMeasurements";
 
 export const getAllConditions = async () => {
 	let response;
@@ -69,6 +71,7 @@ export const saveAggregateUserMeasurements = async (payload) => {
 
 	const conditionNamesToKeys = await getConditionNamesToKeys();
 	const measurementNamesToKeys = await getMeasurementNamesToKeys();
+	const measurementTypesToKeys = await getMeasurementTypesToKeys();
 
 	for (const conditionName in payload) {
 		let conditionPayload = payload[conditionName];
@@ -82,9 +85,11 @@ export const saveAggregateUserMeasurements = async (payload) => {
 				let conditionMeasurements = conditionPayload["measurements"];
 
 				for (const measurementName in conditionMeasurements[measurementType]) {
-					// Below --> you will need to create the new measurement type if you cannot find it in your map. Save it as the type is came in as. Get the PK from it and use it to save the new UM record
 
-					let measurement_id = measurementNamesToKeys[normalizeString(measurementName)] || null;
+					let measurement_id = measurementNamesToKeys[normalizeString(measurementName)];
+					
+					if(measurement_id === undefined) {measurement_id = await createMeasurement(measurementName, measurementTypesToKeys[measurementType])};
+
 					let measurement_value =
 						conditionMeasurements[measurementType][measurementName];
 
@@ -167,7 +172,7 @@ export const getUserWeeklyMeasurements = async (userId, conditionId) => {
 	const sevenDaysAgo = moment().subtract(7, "days").toDate();
 	let query;
 	let replacements = { userId, sevenDaysAgo };
-	let userMeasurements: any;
+	let weeklyUserMeasurements: any;
 
 	if (conditionId) {
 		query = `SELECT um.id, um.measurement_value, um.created_at, conditions.name as condition_name, measurements.measurement, measurement_types.type as measurement_type
@@ -195,7 +200,7 @@ export const getUserWeeklyMeasurements = async (userId, conditionId) => {
 			type: QueryTypes.SELECT,
 		})
 		.then((result) => {
-			userMeasurements = result;
+			weeklyUserMeasurements = result;
 		})
 		.catch((err) => {
 			console.log(err);
@@ -203,25 +208,34 @@ export const getUserWeeklyMeasurements = async (userId, conditionId) => {
 			return Error("Something went wrong");
 		});
 
-	return returnUserMeasurementByConditionAndMeasurement(userMeasurements);
+	return weeklyUserMeasurements;
 };
 
 
 export const getDailyAndWeeklyUserMeasurementsByCondition = async (
 userId,
-conditionId
+conditionName
 ) => {
-	return {
+
+	let conditionId = null;
+	if(conditionName) {
+		const conditionNamesToKey = await getConditionNamesToKeys();
+		conditionId = conditionNamesToKey.hasOwnProperty(normalizeString(conditionName)) ? conditionNamesToKey[normalizeString(conditionName)] : null;
+	} 
+
+	let dataByDailyAndWeekly: DailyAndWeeklyUserMeasurements = {
 		daily: await getDailyUserMeasurementsByCondition(userId, conditionId),
 		weekly: await getUserWeeklyMeasurements(userId, conditionId),
 	};
+
+	return returnUserMeasurementByConditionAndMeasurement(dataByDailyAndWeekly);
 };
 
 export const getDailyUserMeasurementsByCondition = async (
 	userId,
 	conditionId
 ) => {
-	let userMeasurements: any;
+	let dailyUserMeasurements: any;
 	let query = ``;
 	let today = moment().startOf("day").toDate();
 	let replacements = { userId, today };
@@ -252,7 +266,7 @@ export const getDailyUserMeasurementsByCondition = async (
 			type: QueryTypes.SELECT,
 		})
 		.then((result) => {
-			userMeasurements = result;
+			dailyUserMeasurements = result;
 		})
 		.catch((err) => {
 			console.log(err);
@@ -260,7 +274,7 @@ export const getDailyUserMeasurementsByCondition = async (
 			return Error("Something went wrong");
 		});
 
-	return returnUserMeasurementByConditionAndMeasurement(userMeasurements);
+	return dailyUserMeasurements;
 };
 
 export const createUserNote = async (notePayload: UserNote) => {
@@ -273,37 +287,41 @@ export const createUserNote = async (notePayload: UserNote) => {
 	return response;
 };
 
-const returnUserMeasurementByConditionAndMeasurement = (
-	userMeasurementRecords: Array<UserMeasurement>
-) => {
+const returnUserMeasurementByConditionAndMeasurement = (dailyAndWeeklyUserMeasurements: DailyAndWeeklyUserMeasurements) => {
 	let conditionsToDates: Object = {};
 
-	userMeasurementRecords.map((record) => {
-		if (!conditionsToDates.hasOwnProperty(record.condition_name)) {
-			// Set condition name to Object if it is missing
-			conditionsToDates[record.condition_name] = {};
-			// Set measurement name within condition
-			conditionsToDates[record.condition_name][record.measurement_type] = {};
-			// Set initial record for nested structure
-			conditionsToDates[record.condition_name][record.measurement_type][record.measurement] = [record];
-			
-		} 
-		// The following checks each level of the structure for key being set and adds next level when needed
-		else if (!conditionsToDates[record.condition_name].hasOwnProperty(record.measurement_type)
-		) {
-			conditionsToDates[record.condition_name][record.measurement_type] = {};
-
-			conditionsToDates[record.condition_name][record.measurement_type][record.measurement] == null ? conditionsToDates[record.condition_name][record.measurement_type][record.measurement] = [record] : "";
-
-		} else if (!conditionsToDates[record.condition_name][record.measurement_type].hasOwnProperty(record.measurement)) {
-			
-			conditionsToDates[record.condition_name][record.measurement_type][record.measurement] == null ? conditionsToDates[record.condition_name][record.measurement_type][record.measurement] = [record] : "";
-
-		} else {
-			
-			conditionsToDates[record.condition_name][record.measurement_type][record.measurement].push(record);
-		}
-	});
+	for (const dailyOrWeekly in dailyAndWeeklyUserMeasurements) {
+		const userMeasurementRecords = dailyAndWeeklyUserMeasurements[dailyOrWeekly];
+		conditionsToDates[dailyOrWeekly] = {};
+		let target = conditionsToDates[dailyOrWeekly];
+	
+		userMeasurementRecords.map((record) => {
+			if (!target.hasOwnProperty(record.condition_name)) {
+				// Set condition name to Object if it is missing
+				target[record.condition_name] = {};
+				// Set measurement name within condition
+				target[record.condition_name][record.measurement_type] = {};
+				// Set initial record for nested structure
+				target[record.condition_name][record.measurement_type][record.measurement] = [record];
+				
+			} 
+			// The following checks each level of the structure for key being set and adds next level when needed
+			else if (!target[record.condition_name].hasOwnProperty(record.measurement_type)
+			) {
+				target[record.condition_name][record.measurement_type] = {};
+	
+				target[record.condition_name][record.measurement_type][record.measurement] == null ? target[record.condition_name][record.measurement_type][record.measurement] = [record] : "";
+	
+			} else if (!target[record.condition_name][record.measurement_type].hasOwnProperty(record.measurement)) {
+				
+				target[record.condition_name][record.measurement_type][record.measurement] == null ? target[record.condition_name][record.measurement_type][record.measurement] = [record] : "";
+	
+			} else {
+				
+				target[record.condition_name][record.measurement_type][record.measurement].push(record);
+			}
+		});
+	}
 
 	return conditionsToDates;
 };
