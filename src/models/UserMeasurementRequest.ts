@@ -1,6 +1,7 @@
 export type UserMeasurementRequest = {
     user_id: number,
-    conditions: Array<number>,
-    measurement_id: number,
-    measurement_value: String
+    conditions: Array<string>,
+    measurement?: string,
+    measurement_values: Array<string>,
+    measurement_id?: number
 }

@@ -7,6 +7,7 @@ import {
   getUserWeeklyMeasurements,
   getDailyAndWeeklyUserMeasurementsByCondition,
   testQueryToJson,
+  saveAggregateUserMeasurements,
 } from "../../services/userMeasurements";
 
 const router = express.Router();
@@ -31,7 +32,13 @@ router.get("/user-measurements/test", async (req, res, next) => {
 */
 router.post("/user-measurements", async (req, res, next) => {
   let results = await saveUserConditionRecord(req.body);
+  console.log(results);
   return res.json(results);
+});
+
+router.post("/user-measurements/aggregate", async (req, res, next) => {
+  let response = await saveAggregateUserMeasurements(req.body);
+  return res.json(response);
 });
 
 router.put("/user-measurements", async (req, res, next) => {
@@ -40,7 +47,7 @@ router.put("/user-measurements", async (req, res, next) => {
 });
 
 router.delete("/user-measurements", async (req, res, next) => {
-  let results = await markUserMeasurementDeleted(req.query.userId, req.query.conditionId, req.query.recordedAt);
+  let results = await markUserMeasurementDeleted(req.query.userId, req.query.conditionId, req.query.createdAt);
   return res.json(results);
 });
 

@@ -54,12 +54,7 @@ export const UserMeasurements = sequelizeConnection.define(
       field: "is_deleted",
       defaultValue: false,
       allowNull: false,
-    },
-    recorded_at: {
-      type: Sequelize.DataTypes.DATE,
-      field: "recorded_at",
-      defaultValue: Sequelize.NOW,
-    },
+    }
   },
   {
     freezeTableName: true, // Model tableName will be the same as the model name
