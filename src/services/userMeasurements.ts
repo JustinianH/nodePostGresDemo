@@ -87,8 +87,10 @@ export const saveAggregateUserMeasurements = async (payload) => {
 				for (const measurementName in conditionMeasurements[measurementType]) {
 
 					let measurement_id = measurementNamesToKeys[normalizeString(measurementName)];
+
+					// Check if measurment exists. If not, create it. 
 					
-					if(measurement_id === undefined) {measurement_id = await createMeasurement(measurementName, measurementTypesToKeys[measurementType])};
+					if(measurement_id === undefined) {measurement_id = await createMeasurement(measurementName, measurementTypesToKeys[normalizeString(measurementType)])};
 
 					let measurement_value =
 						conditionMeasurements[measurementType][measurementName];
@@ -290,35 +292,45 @@ export const createUserNote = async (notePayload: UserNote) => {
 const returnUserMeasurementByConditionAndMeasurement = (dailyAndWeeklyUserMeasurements: DailyAndWeeklyUserMeasurements) => {
 	let conditionsToDates: Object = {};
 
+	/* 
+		- There is probably a better way to do this than a long if statement, or at least cleaner. 
+		- It would be easier to query by each condition and create a dialy and weekly key in there, but that would take multiple queries
+		- Would like to clean this up with Lodash or another utility
+	*/
+
 	for (const dailyOrWeekly in dailyAndWeeklyUserMeasurements) {
 		const userMeasurementRecords = dailyAndWeeklyUserMeasurements[dailyOrWeekly];
-		conditionsToDates[dailyOrWeekly] = {};
-		let target = conditionsToDates[dailyOrWeekly];
+		let target = conditionsToDates;
 	
 		userMeasurementRecords.map((record) => {
 			if (!target.hasOwnProperty(record.condition_name)) {
 				// Set condition name to Object if it is missing
-				target[record.condition_name] = {};
+				target[record.condition_name] = {[dailyOrWeekly]: {}};
 				// Set measurement name within condition
-				target[record.condition_name][record.measurement_type] = {};
+				target[record.condition_name][dailyOrWeekly][record.measurement_type] = {};
 				// Set initial record for nested structure
-				target[record.condition_name][record.measurement_type][record.measurement] = [record];
+				target[record.condition_name][dailyOrWeekly][record.measurement_type][record.measurement] = [record];
 				
 			} 
 			// The following checks each level of the structure for key being set and adds next level when needed
-			else if (!target[record.condition_name].hasOwnProperty(record.measurement_type)
+			else if (!target[record.condition_name].hasOwnProperty(dailyOrWeekly)) {
+				target[record.condition_name][dailyOrWeekly] = {};
+				target[record.condition_name][dailyOrWeekly][record.measurement_type] = {};
+				target[record.condition_name][dailyOrWeekly][record.measurement_type][record.measurement] = [record];
+			}
+			else if (!target[record.condition_name][dailyOrWeekly].hasOwnProperty(record.measurement_type)
 			) {
-				target[record.condition_name][record.measurement_type] = {};
+				target[record.condition_name][dailyOrWeekly][record.measurement_type] = {};
 	
-				target[record.condition_name][record.measurement_type][record.measurement] == null ? target[record.condition_name][record.measurement_type][record.measurement] = [record] : "";
+				target[record.condition_name][dailyOrWeekly][record.measurement_type][record.measurement] == null ? target[record.condition_name][dailyOrWeekly][record.measurement_type][record.measurement] = [record] : "";
 	
-			} else if (!target[record.condition_name][record.measurement_type].hasOwnProperty(record.measurement)) {
+			} else if (!target[record.condition_name][dailyOrWeekly][record.measurement_type].hasOwnProperty(record.measurement)) {
 				
-				target[record.condition_name][record.measurement_type][record.measurement] == null ? target[record.condition_name][record.measurement_type][record.measurement] = [record] : "";
+				target[record.condition_name][dailyOrWeekly][record.measurement_type][record.measurement] == null ? target[record.condition_name][dailyOrWeekly][record.measurement_type][record.measurement] = [record] : "";
 	
 			} else {
 				
-				target[record.condition_name][record.measurement_type][record.measurement].push(record);
+				target[record.condition_name][dailyOrWeekly][record.measurement_type][record.measurement].push(record);
 			}
 		});
 	}
