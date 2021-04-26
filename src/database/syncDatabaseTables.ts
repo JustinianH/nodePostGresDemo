@@ -5,6 +5,7 @@ import Users from "./models/Users";
 import { MeasurementTypes } from "./models/MeasurementTypes";
 import { NoteCategories } from "./models/NoteCategories";
 import { UserNotes } from "./models/UserNotes";
+import { syncReferenceTablesToRedis } from "../redis/redisConnection";
 
 // Sync tables to DB with Sequelize and Seed DB if needed
 const syncDbTables = async () => {
@@ -82,6 +83,7 @@ const syncDbTables = async () => {
 
   await UserNotes.sync();
   await UserMeasurements.sync();
+  await syncReferenceTablesToRedis();
 };
 
 export default syncDbTables;

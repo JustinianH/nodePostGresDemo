@@ -16,6 +16,8 @@ import {
 import { UserNote } from "../models/UserNote";
 import { UserNotes } from "../database/models/UserNotes";
 import { DailyAndWeeklyUserMeasurements } from "../models/DailyAndWeeklyUserMeasurements";
+import { readRedisKey, getMeasurementsReferenceMap, refreshAndGetReferenceMap } from "../redis/redisConnection";
+import { MeasurementsReferenceMap } from "../models/MeasurementsReferenceMap";
 
 export const getAllConditions = async () => {
 	let response;
@@ -65,17 +67,13 @@ export const saveUserConditionRecord = async (
 
 export const saveAggregateUserMeasurements = async (payload) => {
 	const { user_id } = payload;
-	delete payload.userId;
+	delete payload.user_id;
 
-	let noteCategoriesToKeys = await getNoteCategoriesToKeys();
-
-	const conditionNamesToKeys = await getConditionNamesToKeys();
-	const measurementNamesToKeys = await getMeasurementNamesToKeys();
-	const measurementTypesToKeys = await getMeasurementTypesToKeys();
+	let referenceMap: MeasurementsReferenceMap = await getMeasurementsReferenceMap();
 
 	for (const conditionName in payload) {
 		let conditionPayload = payload[conditionName];
-		let condition_id = conditionNamesToKeys[normalizeString(conditionName)];
+		let condition_id = referenceMap.conditionNamesToKeys[normalizeString(conditionName)];
 
 		if (conditionPayload.hasOwnProperty("measurements")) {
 
@@ -86,14 +84,20 @@ export const saveAggregateUserMeasurements = async (payload) => {
 
 				for (const measurementName in conditionMeasurements[measurementType]) {
 
-					let measurement_id = measurementNamesToKeys[normalizeString(measurementName)];
+					let measurement_id = referenceMap.measurementNamesToKeys[normalizeString(measurementName)];
 
 					// Check if measurment exists. If not, create it. 
 					
-					if(measurement_id === undefined) {measurement_id = await createMeasurement(measurementName, measurementTypesToKeys[normalizeString(measurementType)])};
+					if(measurement_id === undefined) {
+						measurement_id = await createMeasurement(measurementName, referenceMap.measurementTypesToKeys[normalizeString(measurementType)]);
 
-					let measurement_value =
-						conditionMeasurements[measurementType][measurementName];
+						// refresh cache and update reference map with new data
+
+						referenceMap = await refreshAndGetReferenceMap();
+
+					};
+
+					let measurement_value = conditionMeasurements[measurementType][measurementName];
 
 					if (Array.isArray(measurement_value)) {
 						measurement_value.map(async (value: string) => {
@@ -126,7 +130,7 @@ export const saveAggregateUserMeasurements = async (payload) => {
 			conditionPayload.notes.map(async (noteRequest) => {
 				let {note, note_category} = noteRequest;
 
-				const note_category_id = noteCategoriesToKeys[normalizeString(note_category)];
+				const note_category_id = referenceMap.noteCategoriesToKeys[normalizeString(note_category)];
 
 				let notePayload = {note, user_id, note_category: note_category_id}
 
@@ -220,9 +224,12 @@ conditionName
 ) => {
 
 	let conditionId = null;
+
 	if(conditionName) {
-		const conditionNamesToKey = await getConditionNamesToKeys();
-		conditionId = conditionNamesToKey.hasOwnProperty(normalizeString(conditionName)) ? conditionNamesToKey[normalizeString(conditionName)] : null;
+		let conditionNamesToKeys = await readRedisKey("conditionNamesToKeys");
+		conditionNamesToKeys = JSON.parse(conditionNamesToKeys);
+
+		conditionId = conditionNamesToKeys.hasOwnProperty(normalizeString(conditionName)) ? conditionNamesToKeys[normalizeString(conditionName)] : null;
 	} 
 
 	let dataByDailyAndWeekly: DailyAndWeeklyUserMeasurements = {
