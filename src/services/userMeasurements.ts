@@ -7,8 +7,6 @@ import moment from "moment";
 import { UserMeasurementRequest } from "../models/UserMeasurementRequest";
 import {
 	getConditionNamesToKeys,
-	getMeasurementTypesToKeys,
-	getNoteCategoriesToKeys,
 	getMeasurementNamesToKeys,
 	normalizeString,
 	createMeasurement,
@@ -41,8 +39,6 @@ export const saveUserConditionRecord = async (
 
 	const measurement_id: number = measurementNamesToKeys[normalizeString(measurement)];
 	
-	// if(measurement_id === undefined) {throw new Error(`measurement ${measurement} is not valid`)}
-
 	conditions.map(async (conditionName) => {
 		const condition_id: number = conditionNamesToKeys[normalizeString(conditionName)];
 		// map for each value within condition
@@ -90,6 +86,7 @@ export const saveAggregateUserMeasurements = async (payload) => {
 					
 					if(measurement_id === undefined) {
 						measurement_id = await createMeasurement(measurementName, referenceMap.measurementTypesToKeys[normalizeString(measurementType)]);
+						console.log("HERE's THE ID: ", measurement_id);
 
 						// refresh cache and update reference map with new data
 
@@ -296,9 +293,8 @@ export const createUserNote = async (notePayload: UserNote) => {
 	return response;
 };
 
-const returnUserMeasurementByConditionAndMeasurement = (dailyAndWeeklyUserMeasurements: DailyAndWeeklyUserMeasurements) => {
+export const returnUserMeasurementByConditionAndMeasurement = (dailyAndWeeklyUserMeasurements: DailyAndWeeklyUserMeasurements) => {
 	let conditionsToDates: Object = {};
-
 	/* 
 		- There is probably a better way to do this than a long if statement, or at least cleaner. 
 		- It would be easier to query by each condition and create a dialy and weekly key in there, but that would take multiple queries
