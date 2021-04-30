@@ -9,8 +9,17 @@ import {
   testQueryToJson,
   saveAggregateUserMeasurements,
 } from "../../services/userMeasurements";
+import { Measurements } from "../../database/models/Measurements";
+import { getToDos, getPostsWithComments } from "../../client/clientDemo";
 
 const router = express.Router();
+
+// Async & Await example; Parallel calls for two different endpoints and aggregate the data
+
+router.get("/measurements", async (req, res, next) => {
+  let results = await Measurements.findAll();
+  return res.json(results);
+});
 
 router.get("/conditions", async (req, res, next) => {
   let results = await getAllConditions();
@@ -23,13 +32,6 @@ router.get("/user-measurements/test", async (req, res, next) => {
   return res.json(results);
 });
 
-/*
-
-  - Will need to update this payload to look closer to the demo in your Mongo project
-  - Still don't know if UI will send single record transaction or larger payload that includes multiple measurements tied to different conditions
-  - Need to allow UI to reference conditions and measurements by name
-
-*/
 router.post("/user-measurements", async (req, res, next) => {
   let results = await saveUserConditionRecord(req.body);
   console.log(results);
@@ -67,5 +69,14 @@ router.get("/user-measurements/weekly", async (req, res, next) => {
   return res.json(results);
 });
 
+router.get("/async-demo/todos", async (req, res) => {
+  const toDos = await getToDos();
+  return res.json(toDos);
+});
+
+router.get("/async-demo/posts/comments", async (req, res) => {
+  const postsAndComments = await getPostsWithComments();
+  return res.json(postsAndComments);
+});
 
 module.exports = router;

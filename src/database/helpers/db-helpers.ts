@@ -1,5 +1,3 @@
-import { sequelizeConnection } from "../sequelizeConnection";
-import * as Sequelize from "sequelize";
 import { Conditions } from "../models/Conditions";
 import { MeasurementTypes } from "../models/MeasurementTypes";
 import { NoteCategories } from "../models/NoteCategories";
@@ -62,3 +60,5 @@ export const createMeasurement = async (measurement, measurement_type) => {
 export const normalizeString = (inputString: string): string => {
 	return inputString.toLowerCase().replace(/\s/g, "");
 };
+
+export {};

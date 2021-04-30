@@ -86,10 +86,9 @@ export const saveAggregateUserMeasurements = async (payload) => {
 					
 					if(measurement_id === undefined) {
 						measurement_id = await createMeasurement(measurementName, referenceMap.measurementTypesToKeys[normalizeString(measurementType)]);
-						console.log("HERE's THE ID: ", measurement_id);
-
+						
 						// refresh cache and update reference map with new data
-
+						console.log("MEASUREMENT ID", measurement_id);
 						referenceMap = await refreshAndGetReferenceMap();
 
 					};
@@ -139,10 +138,13 @@ export const saveAggregateUserMeasurements = async (payload) => {
 
 export const markUserMeasurementDeleted = async (
 	user_id,
-	condition_id,
+	condition,
 	created_at
 ) => {
 	let returnValue;
+
+	const conditionNamesToKeys = await getConditionNamesToKeys();
+	const condition_id = conditionNamesToKeys[normalizeString(condition)];
 
 	await UserMeasurements.update(
 		{ is_deleted: true },
@@ -155,15 +157,17 @@ export const markUserMeasurementDeleted = async (
 };
 
 export const updateUserMeasurement = async (
-	userMeasurement: UserMeasurement
+	userMeasurement
 ) => {
 	let returnValue;
 
-	const { condition_id, created_at, user_id } = userMeasurement;
+	const { condition, created_at, user_id } = userMeasurement;
+
+	const conditionNamesToKeys = await getConditionNamesToKeys();
+	const condition_id = conditionNamesToKeys[normalizeString(condition)];
 
 	await UserMeasurements.update(userMeasurement, {
 		where: { condition_id, created_at, user_id },
-		returning: true,
 	}).then((response) => {
 		returnValue = response;
 	});
@@ -284,13 +288,7 @@ export const getDailyUserMeasurementsByCondition = async (
 };
 
 export const createUserNote = async (notePayload: UserNote) => {
-	let response = {};
-
-	await UserNotes.create(notePayload).then((result) => {
-		response = result;
-	});
-
-	return response;
+	return await UserNotes.create(notePayload);
 };
 
 export const returnUserMeasurementByConditionAndMeasurement = (dailyAndWeeklyUserMeasurements: DailyAndWeeklyUserMeasurements) => {
